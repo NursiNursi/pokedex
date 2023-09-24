@@ -1,9 +1,10 @@
 import Axios from "axios";
 import "./App.css";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 function App() {
-  const [pokemon, setPokemon] = useState("");
+  const [pokemon, setPokemon] = useState([]);
+  const [pokemonName, setPokemonName] = useState("");
   const [pokemonChosen, setPokemonChosen] = useState(false);
   const [pokemonStats, setPokemonStats] = useState({
     name: "",
@@ -16,15 +17,46 @@ function App() {
   });
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [currentPageUrl, setCurrentPageUrl] = useState(
+    "https://pokeapi.co/api/v2/pokemon"
+  );
+  const [currentPage, setCurrentPage] = useState(1);
+  const [nextPageUrl, setNextPageUrl] = useState();
+  const [prevPageUrl, setPrevPageUrl] = useState();
+
+  useEffect(() => {
+    setIsLoading(true);
+    let cancel;
+    Axios.get(currentPageUrl, {
+      cancelToken: new Axios.CancelToken((c) => (cancel = c)),
+    }).then((res) => {
+      setIsLoading(false);
+      setNextPageUrl(res.data.next);
+      setPrevPageUrl(res.data.previous);
+      setPokemon(res.data.results.map((p) => p.name));
+    });
+
+    return () => cancel();
+  }, [currentPageUrl]);
+
+  function goToNextPage() {
+    setCurrentPageUrl(nextPageUrl);
+    setCurrentPage(currentPage + 1);
+  }
+
+  function goToPrevPage() {
+    setCurrentPageUrl(prevPageUrl);
+    setCurrentPage(currentPage - 1);
+  }
 
   const handleSearch = () => {
     setIsLoading(true);
-    Axios.get(`https://pokeapi.co/api/v2/pokemon/${pokemon}`)
+    Axios.get(`https://pokeapi.co/api/v2/pokemon/${pokemonName}`)
       .then((res) => {
         console.log(res);
         const data = res.data;
         setPokemonStats({
-          name: pokemon,
+          name: pokemonName,
           species: data.species.name,
           img: data.sprites.front_default,
           hp: data.stats[0].base_stat,
@@ -56,7 +88,7 @@ function App() {
         <h1>Pokemon Stats</h1>
         <input
           type="text"
-          onChange={(e) => setPokemon(e.target.value)}
+          onChange={(e) => setPokemonName(e.target.value)}
           onKeyDown={handleKeyDown}
         />
         <button onClick={handleSearch}>Search Pokemon</button>
@@ -81,6 +113,15 @@ function App() {
         ) : (
           <h1>{error}</h1>
         )}
+      </div>
+      <div>
+        {pokemon.map((p) => (
+          <div key={p}>{p}</div>
+        ))}
+      </div>
+      <div>
+        {goToPrevPage && <button onClick={goToPrevPage}>Previous</button>}
+        {goToNextPage && <button onClick={goToNextPage}>Next</button>}
       </div>
     </div>
   );
