@@ -25,18 +25,64 @@ function App() {
   const [prevPageUrl, setPrevPageUrl] = useState();
 
   useEffect(() => {
-    setIsLoading(true);
     let cancel;
-    Axios.get(currentPageUrl, {
-      cancelToken: new Axios.CancelToken((c) => (cancel = c)),
-    }).then((res) => {
-      setIsLoading(false);
-      setNextPageUrl(res.data.next);
-      setPrevPageUrl(res.data.previous);
-      setPokemon(res.data.results.map((p) => p.name));
-    });
+    async function fetchPokemonData() {
+      try {
+        const response = await Axios.get(
+          `https://pokeapi.co/api/v2/pokemon/${pokemonName}`,
+          {
+            cancelToken: new Axios.CancelToken((c) => (cancel = c)),
+          }
+        );
+
+        const data = response.data;
+        setPokemonStats({
+          name: pokemonName,
+          species: data.species.name,
+          img: data.sprites.front_default,
+          hp: data.stats[0].base_stat,
+          attack: data.stats[1].base_stat,
+          defense: data.stats[2].base_stat,
+          type: data.types[0].type.name,
+        });
+        setError("");
+        setIsLoading(false);
+        setPokemonChosen(true);
+      } catch (error) {
+        // setError(error.message);
+        setError("Pokemon not found");
+      }
+    }
+
+    fetchPokemonData();
 
     return () => cancel();
+  }, [pokemonName]);
+
+  useEffect(() => {
+    async function fetchData() {
+      setIsLoading(true);
+      let cancel;
+
+      try {
+        const response = await Axios.get(currentPageUrl, {
+          cancelToken: new Axios.CancelToken((c) => (cancel = c)),
+        });
+
+        setIsLoading(false);
+        setNextPageUrl(response.data.next);
+        setPrevPageUrl(response.data.previous);
+        setPokemon(response.data.results.map((p) => p.name));
+      } catch (error) {
+        // Handle error here
+        console.error("Error fetching data:", error);
+        setIsLoading(false);
+      }
+
+      return () => cancel(); // Cleanup function
+    }
+
+    fetchData();
   }, [currentPageUrl]);
 
   function goToNextPage() {
@@ -49,52 +95,14 @@ function App() {
     setCurrentPage(currentPage - 1);
   }
 
-  const handleSearch = () => {
-    setIsLoading(true);
-    Axios.get(`https://pokeapi.co/api/v2/pokemon/${pokemonName}`)
-      .then((res) => {
-        console.log(res);
-        const data = res.data;
-        setPokemonStats({
-          name: pokemonName,
-          species: data.species.name,
-          img: data.sprites.front_default,
-          hp: data.stats[0].base_stat,
-          attack: data.stats[1].base_stat,
-          defense: data.stats[2].base_stat,
-          type: data.types[0].type.name,
-        });
-        setError("");
-        setIsLoading(false);
-      })
-      .catch(function (error) {
-        // setError(error.message);
-        setError("Pokemon not found");
-      });
-    setPokemonChosen(true);
-  };
-
-  const handleKeyDown = (event) => {
-    if (event.key === "Enter") {
-      handleSearch();
-    }
-  };
-
-  console.log(pokemonStats);
-
   return (
     <div className="App">
       <div className="TitleSection">
         <h1>Pokemon Stats</h1>
-        <input
-          type="text"
-          onChange={(e) => setPokemonName(e.target.value)}
-          onKeyDown={handleKeyDown}
-        />
-        <button onClick={handleSearch}>Search Pokemon</button>
+        <input type="text" onChange={(e) => setPokemonName(e.target.value)} />
       </div>
       <div className="DisplaySection">
-        {!pokemonChosen ? (
+        {!pokemonChosen | (pokemonName.length === 0) ? (
           <h1>Please Choose a Pokemon</h1>
         ) : !error ? (
           !isLoading ? (
@@ -116,7 +124,9 @@ function App() {
       </div>
       <div>
         {pokemon.map((p) => (
-          <div key={p}>{p}</div>
+          <div key={p} onClick={() => setPokemonName(p)}>
+            {p}
+          </div>
         ))}
       </div>
       <div>
