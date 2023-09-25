@@ -1,6 +1,9 @@
 import Axios from "axios";
 import "./App.css";
 import { useState, useEffect } from "react";
+import TitleSection from "./components/TitleSection";
+import DisplaySection from "./components/DisplaySection";
+import PokemonList from "./components/PokemonList";
 
 function App() {
   const [pokemon, setPokemon] = useState([]);
@@ -23,6 +26,11 @@ function App() {
   const [currentPage, setCurrentPage] = useState(1);
   const [nextPageUrl, setNextPageUrl] = useState();
   const [prevPageUrl, setPrevPageUrl] = useState();
+
+  const [pokemonList, setPokemonList] = useState({
+    name: "",
+    img: "",
+  });
 
   useEffect(() => {
     let cancel;
@@ -85,54 +93,26 @@ function App() {
     fetchData();
   }, [currentPageUrl]);
 
-  function goToNextPage() {
-    setCurrentPageUrl(nextPageUrl);
-    setCurrentPage(currentPage + 1);
-  }
-
-  function goToPrevPage() {
-    setCurrentPageUrl(prevPageUrl);
-    setCurrentPage(currentPage - 1);
-  }
-
   return (
-    <div className="App">
-      <div className="TitleSection">
-        <h1>Pokemon Stats</h1>
-        <input type="text" onChange={(e) => setPokemonName(e.target.value)} />
-      </div>
-      <div className="DisplaySection">
-        {!pokemonChosen | (pokemonName.length === 0) ? (
-          <h1>Please Choose a Pokemon</h1>
-        ) : !error ? (
-          !isLoading ? (
-            <>
-              <h1>{pokemonStats.name}</h1>
-              <img src={pokemonStats.img} alt={pokemonStats.name} />
-              <h3>Species: {pokemonStats.species}</h3>
-              <h3>Type: {pokemonStats.type}</h3>
-              <h4>Hp: {pokemonStats.hp}</h4>
-              <h4>Attack: {pokemonStats.attack}</h4>
-              <h4>Defense: {pokemonStats.defense}</h4>
-            </>
-          ) : (
-            <h1>Loading...</h1>
-          )
-        ) : (
-          <h1>{error}</h1>
-        )}
-      </div>
-      <div>
-        {pokemon.map((p) => (
-          <div key={p} onClick={() => setPokemonName(p)}>
-            {p}
-          </div>
-        ))}
-      </div>
-      <div>
-        {goToPrevPage && <button onClick={goToPrevPage}>Previous</button>}
-        {goToNextPage && <button onClick={goToNextPage}>Next</button>}
-      </div>
+    <div className="container">
+      <TitleSection setPokemonName={setPokemonName} />
+      <DisplaySection
+        pokemonChosen={pokemonChosen}
+        pokemonName={pokemonName}
+        pokemonStats={pokemonStats}
+        error={error}
+        isLoading={isLoading}
+      />
+      <PokemonList
+        pokemon={pokemon}
+        pokemonStats={pokemonStats}
+        setPokemonName={setPokemonName}
+        setCurrentPageUrl={setCurrentPageUrl}
+        setCurrentPage={setCurrentPage}
+        nextPageUrl={nextPageUrl}
+        prevPageUrl={prevPageUrl}
+        currentPage={currentPage}
+      />
     </div>
   );
 }
